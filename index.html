@@ -16,6 +16,8 @@
     display: flex;
     flex-direction: column;
     background: #f0f0f0;
+    overflow: hidden;
+    position: relative;
   }
   h1 { text-align: center; margin-bottom: 10px; }
   button {
@@ -25,21 +27,43 @@
     border-radius: 8px;
     font-size: 16px;
     cursor: pointer;
+    position: relative;
+    z-index: 2;
   }
   #positive { background: #4CAF50; color: white; }
   #negative { background: #f44336; color: white; }
   #thoughtInput { width: 100%; padding: 10px; margin: 10px 0; font-size: 16px; border-radius: 5px; }
-  #thoughts { margin-top: 20px; flex-grow: 1; overflow-y: auto; }
+  #thoughts { margin-top: 20px; flex-grow: 1; overflow-y: auto; z-index: 1; }
   .thought {
     background: white;
     padding: 10px;
     margin-bottom: 5px;
     border-radius: 5px;
     transition: background 1s, transform 0.3s;
+    display: flex;
+    align-items: center;
   }
   .highlight { background: #ffff99; transform: scale(1.05); }
-  .timestamp { font-size: 12px; color: #555; margin-top: 2px; }
+  .timestamp { font-size: 12px; color: #555; margin-left: auto; }
+  .icon { font-size: 20px; margin-right: 10px; }
   #counter { margin-top: 10px; font-weight: bold; text-align: center; }
+  /* Эффект энергии */
+  .energy {
+    position: absolute;
+    top: -50px;
+    left: 50%;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    opacity: 0.8;
+    pointer-events: none;
+    animation: flow 1.5s forwards;
+    z-index: 1;
+  }
+  @keyframes flow {
+    0% { transform: translate(-50%, 0) scale(1); opacity: 0.8; }
+    100% { transform: translate(-50%, 100vh) scale(0.5); opacity: 0; }
+  }
 </style>
 </head>
 <body>
@@ -61,63 +85,77 @@
   const body = document.body;
   const thoughtsContainer = document.getElementById('thoughts');
   const counter = document.getElementById('counter');
+  let currentType = null;
 
-  // Динамический фон по времени дня
+  // Фон по времени дня
   function setBackgroundByTime() {
     const hour = new Date().getHours();
-    if(hour >= 6 && hour < 12) body.style.background = '#fff9c4'; // утро
-    else if(hour >= 12 && hour < 18) body.style.background = '#b3e5fc'; // день
-    else if(hour >= 18 && hour < 21) body.style.background = '#ffcc80'; // вечер
-    else body.style.background = '#303f9f'; // ночь
+    if(hour >= 6 && hour < 12) body.style.background = '#fff9c4';
+    else if(hour >= 12 && hour < 18) body.style.background = '#b3e5fc';
+    else if(hour >= 18 && hour < 21) body.style.background = '#ffcc80';
+    else body.style.background = '#303f9f';
   }
   setBackgroundByTime();
 
-  // Обновление списка мыслей и счетчика
+  // Обновление мыслей
   function updateThoughts() {
     thoughtsContainer.innerHTML = '';
     const thoughts = JSON.parse(localStorage.getItem('thoughts') || '[]');
     thoughts.forEach(t => {
       const div = document.createElement('div');
       div.className = 'thought';
-      div.innerHTML = t.text + `<div class="timestamp">${t.time}</div>`;
+      const icon = t.type === 'positive' ? '✅' : '⚡';
+      div.innerHTML = `<span class="icon">${icon}</span>${t.text}<div class="timestamp">${t.time}</div>`;
       thoughtsContainer.appendChild(div);
     });
     counter.textContent = `Мыслей всего: ${thoughts.length}`;
   }
 
-  // Сохранение новой мысли
+  // Создание эффекта энергии
+  function createEnergy(type) {
+    const energy = document.createElement('div');
+    energy.className = 'energy';
+    energy.style.background = type === 'positive' ? '#4CAF50' : '#f44336';
+    energy.style.left = (Math.random() * 80 + 10) + '%'; // случайная позиция
+    body.appendChild(energy);
+    setTimeout(() => energy.remove(), 1500);
+  }
+
+  // Кнопки энергии
+  function activateEnergy(type) {
+    currentType = type;
+    body.style.background = type === 'positive' ? '#d0f0c0' : '#f0d0d0';
+    createEnergy(type);
+    const message = type === 'positive' ? 'Энергия и сила активированы!' : 'Мы наблюдаем и отпускаем эту энергию.';
+    alert(message);
+    setTimeout(() => setBackgroundByTime(), 5000);
+  }
+
+  document.getElementById('positive').addEventListener('click', () => activateEnergy('positive'));
+  document.getElementById('negative').addEventListener('click', () => activateEnergy('negative'));
+
+  // Сохранение мыслей
   document.getElementById('saveThought').addEventListener('click', () => {
     const input = document.getElementById('thoughtInput');
-    if(input.value.trim() === '') return;
+    if(input.value.trim() === '' || !currentType) return;
     const thoughts = JSON.parse(localStorage.getItem('thoughts') || '[]');
     const now = new Date();
-    const newThought = { text: input.value.trim(), time: now.toLocaleString() };
+    const newThought = { text: input.value.trim(), time: now.toLocaleString(), type: currentType };
     thoughts.unshift(newThought);
     localStorage.setItem('thoughts', JSON.stringify(thoughts));
     input.value = '';
+    currentType = null;
 
     const newDiv = document.createElement('div');
     newDiv.className = 'thought highlight';
-    newDiv.innerHTML = newThought.text + `<div class="timestamp">${newThought.time}</div>`;
+    const icon = newThought.type === 'positive' ? '✅' : '⚡';
+    newDiv.innerHTML = `<span class="icon">${icon}</span>${newThought.text}<div class="timestamp">${newThought.time}</div>`;
     thoughtsContainer.prepend(newDiv);
-
     setTimeout(() => newDiv.classList.remove('highlight'), 1000);
+
     updateThoughts();
   });
 
-  // Энергетические кнопки
-  document.getElementById('positive').addEventListener('click', () => {
-    body.style.background = '#d0f0c0';
-    alert('Энергия и сила активированы!');
-    setTimeout(setBackgroundByTime, 2000);
-  });
-  document.getElementById('negative').addEventListener('click', () => {
-    body.style.background = '#f0d0d0';
-    alert('Мы наблюдаем и отпускаем эту энергию.');
-    setTimeout(setBackgroundByTime, 2000);
-  });
-
-  // Инициализация
   updateThoughts();
 </script>
 
