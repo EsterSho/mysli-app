@@ -8,14 +8,38 @@
 <link rel="icon" type="image/png" sizes="512x512" href="icon.png">
 <meta name="theme-color" content="#ffffff">
 <style>
-  body { font-family: sans-serif; padding: 20px; background: #f0f0f0; }
-  h1 { text-align: center; }
-  button { padding: 10px 20px; margin: 5px; border: none; border-radius: 8px; font-size: 16px; cursor: pointer; }
+  body {
+    font-family: sans-serif;
+    padding: 20px;
+    transition: background 1s;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    background: #f0f0f0;
+  }
+  h1 { text-align: center; margin-bottom: 10px; }
+  button {
+    padding: 10px 20px;
+    margin: 5px;
+    border: none;
+    border-radius: 8px;
+    font-size: 16px;
+    cursor: pointer;
+  }
   #positive { background: #4CAF50; color: white; }
   #negative { background: #f44336; color: white; }
   #thoughtInput { width: 100%; padding: 10px; margin: 10px 0; font-size: 16px; border-radius: 5px; }
-  #thoughts { margin-top: 20px; }
-  .thought { background: white; padding: 10px; margin-bottom: 5px; border-radius: 5px; }
+  #thoughts { margin-top: 20px; flex-grow: 1; overflow-y: auto; }
+  .thought {
+    background: white;
+    padding: 10px;
+    margin-bottom: 5px;
+    border-radius: 5px;
+    transition: background 1s, transform 0.3s;
+  }
+  .highlight { background: #ffff99; transform: scale(1.05); }
+  .timestamp { font-size: 12px; color: #555; margin-top: 2px; }
+  #counter { margin-top: 10px; font-weight: bold; text-align: center; }
 </style>
 </head>
 <body>
@@ -30,45 +54,72 @@
 <input type="text" id="thoughtInput" placeholder="Запиши мысль...">
 <button id="saveThought">Сохранить мысль</button>
 
+<div id="counter"></div>
 <div id="thoughts"></div>
 
 <script>
-  // Функция обновления списка мыслей
+  const body = document.body;
+  const thoughtsContainer = document.getElementById('thoughts');
+  const counter = document.getElementById('counter');
+
+  // Динамический фон по времени дня
+  function setBackgroundByTime() {
+    const hour = new Date().getHours();
+    if(hour >= 6 && hour < 12) body.style.background = '#fff9c4'; // утро
+    else if(hour >= 12 && hour < 18) body.style.background = '#b3e5fc'; // день
+    else if(hour >= 18 && hour < 21) body.style.background = '#ffcc80'; // вечер
+    else body.style.background = '#303f9f'; // ночь
+  }
+  setBackgroundByTime();
+
+  // Обновление списка мыслей и счетчика
   function updateThoughts() {
-    const container = document.getElementById('thoughts');
-    container.innerHTML = '';
+    thoughtsContainer.innerHTML = '';
     const thoughts = JSON.parse(localStorage.getItem('thoughts') || '[]');
     thoughts.forEach(t => {
       const div = document.createElement('div');
       div.className = 'thought';
-      div.textContent = t;
-      container.appendChild(div);
+      div.innerHTML = t.text + `<div class="timestamp">${t.time}</div>`;
+      thoughtsContainer.appendChild(div);
     });
+    counter.textContent = `Мыслей всего: ${thoughts.length}`;
   }
 
-  // Сохранение мысли
+  // Сохранение новой мысли
   document.getElementById('saveThought').addEventListener('click', () => {
     const input = document.getElementById('thoughtInput');
     if(input.value.trim() === '') return;
     const thoughts = JSON.parse(localStorage.getItem('thoughts') || '[]');
-    thoughts.unshift(input.value.trim());
+    const now = new Date();
+    const newThought = { text: input.value.trim(), time: now.toLocaleString() };
+    thoughts.unshift(newThought);
     localStorage.setItem('thoughts', JSON.stringify(thoughts));
     input.value = '';
+
+    const newDiv = document.createElement('div');
+    newDiv.className = 'thought highlight';
+    newDiv.innerHTML = newThought.text + `<div class="timestamp">${newThought.time}</div>`;
+    thoughtsContainer.prepend(newDiv);
+
+    setTimeout(() => newDiv.classList.remove('highlight'), 1000);
     updateThoughts();
   });
 
-  // Кнопки "Даёт силы" и "Забирает силы"
+  // Энергетические кнопки
   document.getElementById('positive').addEventListener('click', () => {
+    body.style.background = '#d0f0c0';
     alert('Энергия и сила активированы!');
+    setTimeout(setBackgroundByTime, 2000);
   });
   document.getElementById('negative').addEventListener('click', () => {
+    body.style.background = '#f0d0d0';
     alert('Мы наблюдаем и отпускаем эту энергию.');
+    setTimeout(setBackgroundByTime, 2000);
   });
 
-  // Загрузка мыслей при старте
+  // Инициализация
   updateThoughts();
 </script>
 
 </body>
 </html>
-
