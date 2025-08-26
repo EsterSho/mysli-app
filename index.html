@@ -1,114 +1,74 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Мои Мысли</title>
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      margin: 0;
-      padding: 20px;
-      background: #f7f7f7;
-    }
-    h1 {
-      text-align: center;
-    }
-    .container {
-      max-width: 600px;
-      margin: auto;
-      background: white;
-      padding: 20px;
-      border-radius: 12px;
-      box-shadow: 0 4px 10px rgba(0,0,0,0.1);
-    }
-    textarea {
-      width: 100%;
-      height: 80px;
-      margin-bottom: 10px;
-      padding: 10px;
-      border-radius: 8px;
-      border: 1px solid #ccc;
-      resize: none;
-    }
-    button {
-      padding: 10px 20px;
-      margin: 5px;
-      border: none;
-      border-radius: 8px;
-      cursor: pointer;
-      font-size: 16px;
-    }
-    .positive { background: #4caf50; color: white; }
-    .negative { background: #f44336; color: white; }
-    ul { list-style: none; padding: 0; }
-    li {
-      background: #eee;
-      margin: 5px 0;
-      padding: 10px;
-      border-radius: 8px;
-    }
-    .tag {
-      font-size: 12px;
-      padding: 2px 6px;
-      border-radius: 6px;
-      margin-left: 10px;
-    }
-    .pos-tag { background: #c8e6c9; color: #2e7d32; }
-    .neg-tag { background: #ffcdd2; color: #c62828; }
-  </style>
-  <link rel="apple-touch-icon" sizes="180x180" href="/mysli-app/icon.png">
-<link rel="icon" type="image/png" sizes="512x512" href="/mysli-app/icon.png">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Мысли и Сила</title>
+<link rel="apple-touch-icon" sizes="180x180" href="icon.png">
+<link rel="icon" type="image/png" sizes="512x512" href="icon.png">
 <meta name="theme-color" content="#ffffff">
+<style>
+  body { font-family: sans-serif; padding: 20px; background: #f0f0f0; }
+  h1 { text-align: center; }
+  button { padding: 10px 20px; margin: 5px; border: none; border-radius: 8px; font-size: 16px; cursor: pointer; }
+  #positive { background: #4CAF50; color: white; }
+  #negative { background: #f44336; color: white; }
+  #thoughtInput { width: 100%; padding: 10px; margin: 10px 0; font-size: 16px; border-radius: 5px; }
+  #thoughts { margin-top: 20px; }
+  .thought { background: white; padding: 10px; margin-bottom: 5px; border-radius: 5px; }
+</style>
 </head>
 <body>
-  <h1>Мои Мысли</h1>
-  <div class="container">
-    <textarea id="thought" placeholder="Напиши мысль..."></textarea>
-    <div>
-      <button class="positive" onclick="saveThought(true)">Даёт силу 💪</button>
-      <button class="negative" onclick="saveThought(false)">Забирает силу 🕳</button>
-    </div>
-    <h3>Сегодняшние мысли:</h3>
-    <ul id="thoughtsList"></ul>
-  </div>
 
-  <script>
-    const thoughtsKey = "thoughts";
+<h1>Мысли и Сила</h1>
 
-    function loadThoughts() {
-      const data = localStorage.getItem(thoughtsKey);
-      return data ? JSON.parse(data) : [];
-    }
+<div style="text-align:center;">
+  <button id="positive">Даёт силы</button>
+  <button id="negative">Забирает силы</button>
+</div>
 
-    function saveThought(isPositive) {
-      const text = document.getElementById("thought").value.trim();
-      if (!text) return;
-      const thoughts = loadThoughts();
-      thoughts.push({ text, isPositive, date: new Date().toLocaleDateString() });
-      localStorage.setItem(thoughtsKey, JSON.stringify(thoughts));
-      document.getElementById("thought").value = "";
-      renderThoughts();
-    }
+<input type="text" id="thoughtInput" placeholder="Запиши мысль...">
+<button id="saveThought">Сохранить мысль</button>
 
-    function renderThoughts() {
-      const thoughts = loadThoughts();
-      const today = new Date().toLocaleDateString();
-      const todayThoughts = thoughts.filter(t => t.date === today);
-      const list = document.getElementById("thoughtsList");
-      list.innerHTML = "";
-      todayThoughts.forEach(t => {
-        const li = document.createElement("li");
-        li.textContent = t.text;
-        const tag = document.createElement("span");
-        tag.classList.add("tag", t.isPositive ? "pos-tag" : "neg-tag");
-        tag.textContent = t.isPositive ? "Даёт силу" : "Забирает силу";
-        li.appendChild(tag);
-        list.appendChild(li);
-      });
-    }
+<div id="thoughts"></div>
 
-    renderThoughts();
-  </script>
+<script>
+  // Функция обновления списка мыслей
+  function updateThoughts() {
+    const container = document.getElementById('thoughts');
+    container.innerHTML = '';
+    const thoughts = JSON.parse(localStorage.getItem('thoughts') || '[]');
+    thoughts.forEach(t => {
+      const div = document.createElement('div');
+      div.className = 'thought';
+      div.textContent = t;
+      container.appendChild(div);
+    });
+  }
+
+  // Сохранение мысли
+  document.getElementById('saveThought').addEventListener('click', () => {
+    const input = document.getElementById('thoughtInput');
+    if(input.value.trim() === '') return;
+    const thoughts = JSON.parse(localStorage.getItem('thoughts') || '[]');
+    thoughts.unshift(input.value.trim());
+    localStorage.setItem('thoughts', JSON.stringify(thoughts));
+    input.value = '';
+    updateThoughts();
+  });
+
+  // Кнопки "Даёт силы" и "Забирает силы"
+  document.getElementById('positive').addEventListener('click', () => {
+    alert('Энергия и сила активированы!');
+  });
+  document.getElementById('negative').addEventListener('click', () => {
+    alert('Мы наблюдаем и отпускаем эту энергию.');
+  });
+
+  // Загрузка мыслей при старте
+  updateThoughts();
+</script>
+
 </body>
 </html>
+
