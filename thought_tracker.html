@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Мои Мысли</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 20px;
+      background: #f7f7f7;
+    }
+    h1 {
+      text-align: center;
+    }
+    .container {
+      max-width: 600px;
+      margin: auto;
+      background: white;
+      padding: 20px;
+      border-radius: 12px;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+    }
+    textarea {
+      width: 100%;
+      height: 80px;
+      margin-bottom: 10px;
+      padding: 10px;
+      border-radius: 8px;
+      border: 1px solid #ccc;
+      resize: none;
+    }
+    button {
+      padding: 10px 20px;
+      margin: 5px;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 16px;
+    }
+    .positive { background: #4caf50; color: white; }
+    .negative { background: #f44336; color: white; }
+    ul { list-style: none; padding: 0; }
+    li {
+      background: #eee;
+      margin: 5px 0;
+      padding: 10px;
+      border-radius: 8px;
+    }
+    .tag {
+      font-size: 12px;
+      padding: 2px 6px;
+      border-radius: 6px;
+      margin-left: 10px;
+    }
+    .pos-tag { background: #c8e6c9; color: #2e7d32; }
+    .neg-tag { background: #ffcdd2; color: #c62828; }
+  </style>
+</head>
+<body>
+  <h1>Мои Мысли</h1>
+  <div class="container">
+    <textarea id="thought" placeholder="Напиши мысль..."></textarea>
+    <div>
+      <button class="positive" onclick="saveThought(true)">Даёт силу 💪</button>
+      <button class="negative" onclick="saveThought(false)">Забирает силу 🕳</button>
+    </div>
+    <h3>Сегодняшние мысли:</h3>
+    <ul id="thoughtsList"></ul>
+  </div>
+
+  <script>
+    const thoughtsKey = "thoughts";
+
+    function loadThoughts() {
+      const data = localStorage.getItem(thoughtsKey);
+      return data ? JSON.parse(data) : [];
+    }
+
+    function saveThought(isPositive) {
+      const text = document.getElementById("thought").value.trim();
+      if (!text) return;
+      const thoughts = loadThoughts();
+      thoughts.push({ text, isPositive, date: new Date().toLocaleDateString() });
+      localStorage.setItem(thoughtsKey, JSON.stringify(thoughts));
+      document.getElementById("thought").value = "";
+      renderThoughts();
+    }
+
+    function renderThoughts() {
+      const thoughts = loadThoughts();
+      const today = new Date().toLocaleDateString();
+      const todayThoughts = thoughts.filter(t => t.date === today);
+      const list = document.getElementById("thoughtsList");
+      list.innerHTML = "";
+      todayThoughts.forEach(t => {
+        const li = document.createElement("li");
+        li.textContent = t.text;
+        const tag = document.createElement("span");
+        tag.classList.add("tag", t.isPositive ? "pos-tag" : "neg-tag");
+        tag.textContent = t.isPositive ? "Даёт силу" : "Забирает силу";
+        li.appendChild(tag);
+        list.appendChild(li);
+      });
+    }
+
+    renderThoughts();
+  </script>
+</body>
+</html>
