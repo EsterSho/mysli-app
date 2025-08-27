@@ -8,30 +8,87 @@
 <link rel="icon" type="image/png" sizes="512x512" href="icon.png">
 <meta name="theme-color" content="#ffffff">
 <style>
-body { font-family:sans-serif; padding:20px; transition:background 1s; min-height:100vh; display:flex; flex-direction:column; overflow:hidden; position:relative;}
-h1 { text-align:center; margin-bottom:10px;}
-button { padding:10px 20px; margin:5px; border:none; border-radius:8px; font-size:16px; cursor:pointer; position:relative; z-index:2;}
-#positive { background:#4CAF50; color:white;}
-#negative { background:#f44336; color:white;}
-#thoughtInput { width:100%; padding:10px; margin:10px 0; font-size:16px; border-radius:5px;}
-#thoughts { margin-top:20px; flex-grow:1; overflow-y:auto; z-index:1;}
-.thought { padding:10px; margin-bottom:5px; border-radius:5px; transition:transform 0.3s; display:flex; align-items:center; justify-content:space-between; position:relative; color:white; opacity:1;}
-.timestamp { font-size:12px; color:rgba(255,255,255,0.7); margin-top:2px;}
-.icon { font-size:20px; margin-left:10px; position:relative;}
-.btns { display:flex; gap:5px; margin-left:10px;}
-.btns button { padding:2px 6px; font-size:14px; border-radius:5px; color:white;}
-.edit { background:#2196F3;}
-.delete { background:#f44336;}
-#counter { margin-top:10px; font-weight:bold; text-align:center; color:white;}
-.energy { position:absolute; top:-50px; left:50%; width:20px; height:20px; border-radius:50%; opacity:0.8; pointer-events:none; animation:flow 1.5s forwards; z-index:1;}
-@keyframes flow {0%{transform:translate(-50%,0) scale(1); opacity:0.8;}100%{transform:translate(-50%,100vh) scale(0.5); opacity:0;}}
-@keyframes appear {0%{transform:translateY(-50px) scale(0.5); opacity:0;}70%{transform:translateY(10px) scale(1.05); opacity:1;}100%{transform:translateY(0) scale(1);}}
-button.pulse { animation:pulse 1s infinite alternate;}
-@keyframes pulse {0%{transform:scale(1); box-shadow:0 0 5px rgba(255,255,255,0.5);}100%{transform:scale(1.05); box-shadow:0 0 15px rgba(255,255,255,0.9);}}
+body {
+  font-family: sans-serif;
+  padding: 20px;
+  transition: background 1s;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  position: relative;
+}
+h1 { text-align: center; margin-bottom: 10px; }
+button {
+  padding: 10px 20px;
+  margin: 5px;
+  border: none;
+  border-radius: 8px;
+  font-size: 16px;
+  cursor: pointer;
+  position: relative;
+  z-index: 2;
+}
+#positive { background: #4CAF50; color: white; }
+#negative { background: #f44336; color: white; }
+#thoughtInput { width: 100%; padding: 10px; margin: 10px 0; font-size: 16px; border-radius: 5px; }
+#thoughts { margin-top: 20px; flex-grow: 1; overflow-y: auto; z-index: 1; scroll-behavior: smooth; }
+.thought {
+  padding: 10px;
+  margin-bottom: 5px;
+  border-radius: 5px;
+  transition: transform 0.3s;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  position: relative;
+  color: white;
+  opacity: 1;
+}
+.timestamp { font-size: 12px; color: rgba(255,255,255,0.7); margin-top: 2px; }
+.icon { font-size: 20px; margin-left: 10px; position: relative; }
+.btns { display: flex; gap: 5px; margin-left: 10px; }
+.btns button { padding: 2px 6px; font-size: 14px; border-radius: 5px; color: white; }
+.edit { background: #2196F3; }
+.delete { background: #f44336; }
+#counter { margin-top: 10px; font-weight: bold; text-align: center; color: white; }
+/* Энергия анимация */
+.energy {
+  position: absolute;
+  top: -50px;
+  left: 50%;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  opacity: 0.8;
+  pointer-events: none;
+  animation: flow 1.5s forwards;
+  z-index: 1;
+}
+@keyframes flow {
+  0% { transform: translate(-50%,0) scale(1); opacity: 0.8; }
+  100% { transform: translate(-50%,100vh) scale(0.5); opacity: 0; }
+}
+/* Появление мысли */
+@keyframes appear {
+  0% { transform: translateY(-50px) scale(0.5); opacity: 0; }
+  70% { transform: translateY(10px) scale(1.05); opacity: 1; }
+  100% { transform: translateY(0) scale(1); }
+}
+/* Пульс для кнопок */
+button.pulse {
+  animation: pulse 1s infinite alternate;
+}
+@keyframes pulse {
+  0% { transform: scale(1); box-shadow: 0 0 5px rgba(255,255,255,0.5); }
+  100% { transform: scale(1.05); box-shadow: 0 0 15px rgba(255,255,255,0.9); }
+}
 </style>
 </head>
 <body>
+
 <h1>Мысли и Сила</h1>
+
 <div style="text-align:center;">
   <button id="positive">Даёт силы</button>
   <button id="negative">Забирает силы</button>
@@ -39,46 +96,48 @@ button.pulse { animation:pulse 1s infinite alternate;}
 
 <input type="text" id="thoughtInput" placeholder="Запиши мысль...">
 <button id="saveThought">Сохранить мысль</button>
-<button id="exportJSON">Экспорт мыслей</button>
-<input type="file" id="importJSON" style="display:none;">
-<button id="importBtn">Импорт мыслей</button>
+<button id="exportJSON">Экспорт JSON</button>
+<button id="importBtn">Импорт JSON</button>
+<input type="file" id="importJSON" style="display:none">
 
 <div id="counter"></div>
 <div id="thoughts"></div>
 
-<h2 style="color:white; text-align:center;">Дневник энергии</h2>
-<canvas id="energyChart" style="max-width:100%; height:200px;"></canvas>
-
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-<script>
-const body=document.body;
-const thoughtsContainer=document.getElementById('thoughts');
-const counter=document.getElementById('counter');
-const btnPositive=document.getElementById('positive');
-const btnNegative=document.getElementById('negative');
-let currentType=null;
 
-// фон по времени суток
-function setBackgroundByTime(){
-  const hour=new Date().getHours();
-  if(hour>=6&&hour<18) body.style.background='linear-gradient(to bottom, #a0c4ff, #b0bec5)';
-  else body.style.background='linear-gradient(to bottom, #1a237e, #283593)';
+<canvas id="energyChart" style="max-width:100%; height:200px; margin-top:20px;"></canvas>
+
+<script>
+const body = document.body;
+const thoughtsContainer = document.getElementById('thoughts');
+const counter = document.getElementById('counter');
+const btnPositive = document.getElementById('positive');
+const btnNegative = document.getElementById('negative');
+let currentType = null;
+
+// Фон по времени суток
+function setBackgroundByTime() {
+  const hour = new Date().getHours();
+  if(hour >= 6 && hour < 18) body.style.background = 'linear-gradient(to bottom, #a0c4ff, #b0bec5)';
+  else body.style.background = 'linear-gradient(to bottom, #1a237e, #283593)';
 }
 setBackgroundByTime();
 
+// Энергия частицы
 function createEnergy(type){
-  const energy=document.createElement('div');
+  const energy = document.createElement('div');
   energy.className='energy';
-  energy.style.background=type==='positive'?'#4CAF50':'#f44336';
-  energy.style.left=(Math.random()*80+10)+'%';
+  energy.style.background = type==='positive'?'#4CAF50':'#f44336';
+  energy.style.left = (Math.random()*80+10)+'%';
   body.appendChild(energy);
   setTimeout(()=>energy.remove(),1500);
 }
 
+// Кнопки энергии
 function activateEnergy(type){
-  currentType=type;
+  currentType = type;
   createEnergy(type);
-  body.style.background=type==='positive'?'#d0f0c0':'#f0d0d0';
+  body.style.background = type==='positive'?'#d0f0c0':'#f0d0d0';
   alert(type==='positive'?'Энергия и сила активированы!':'Мы наблюдаем и отпускаем эту энергию.');
   setTimeout(setBackgroundByTime,5000);
   btnPositive.classList.add('pulse');
@@ -88,103 +147,20 @@ function activateEnergy(type){
 btnPositive.addEventListener('click',()=>activateEnergy('positive'));
 btnNegative.addEventListener('click',()=>activateEnergy('negative'));
 
-// график
-let chart;
-function updateChart(){
-  const thoughts=JSON.parse(localStorage.getItem('thoughts')||'[]');
-  const daily={};
-  thoughts.forEach(t=>{
-    const date=new Date(t.time).toLocaleDateString();
-    if(!daily[date]) daily[date]={positive:0,negative:0};
-    daily[date][t.type]++;
-  });
-  const labels=Object.keys(daily).sort((a,b)=> new Date(a)-new Date(b));
-  const positiveData=labels.map(d=>daily[d].positive);
-  const negativeData=labels.map(d=>daily[d].negative);
-  const ctx=document.getElementById('energyChart').getContext('2d');
-  if(chart) chart.destroy();
-  chart=new Chart(ctx,{
-    type:'line',
-    data:{labels,datasets:[
-      {label:'Даёт силы', data:positiveData, borderColor:'#4CAF50', backgroundColor:'rgba(76,175,80,0.2)', tension:0.3},
-      {label:'Забирает силы', data:negativeData, borderColor:'#f44336', backgroundColor:'rgba(244,67,54,0.2)', tension:0.3}
-    ]},
-    options:{
-      responsive:true,
-      plugins:{legend:{labels:{color:'white'}}},
-      scales:{x:{ticks:{color:'white'}},y:{ticks:{color:'white'}}}
-    }
-  });
-}
-
-// обновление мыслей
-function updateThoughts(){
-  thoughtsContainer.innerHTML='';
-  const thoughts=JSON.parse(localStorage.getItem('thoughts')||'[]');
-  thoughts.forEach((t,index)=>{
-    const div=document.createElement('div');
-    div.className='thought';
-    div.style.background=t.type==='positive'?'#4CAF50':'#f44336';
-    div.innerHTML=`
-      <div>
-        <span class="icon">${t.type==='positive'?'✅':'⚡'}</span> ${t.text}
-        <div class="timestamp">${t.time}</div>
-      </div>
-      <div class="btns">
-        <button class="edit">✏️</button>
-        <button class="delete">🗑️</button>
-      </div>
-    `;
-    div.style.animation='appear 0.5s ease';
-
-    div.querySelector('.edit').addEventListener('click', ()=>{
-      const newText=prompt('Измени мысль:', t.text);
-      if(newText){
-        const newType=prompt('Выбери тип энергии: positive/negative', t.type);
-        if(newType==='positive'||newType==='negative'){
-          const iconSpan=div.querySelector('.icon');
-          const newIcon=document.createElement('span');
-          newIcon.className='icon';
-          newIcon.style.marginLeft='5px';
-          newIcon.textContent=newType==='positive'?'✅':'⚡';
-          iconSpan.parentNode.insertBefore(newIcon,iconSpan.nextSibling);
-          setTimeout(()=>{iconSpan.textContent=newType==='positive'?'✅':'⚡'; newIcon.remove();},800);
-          t.text=newText;
-          t.type=newType;
-          localStorage.setItem('thoughts',JSON.stringify(thoughts));
-          updateThoughts();
-        }
-      }
-    });
-
-    div.querySelector('.delete').addEventListener('click', ()=>{
-      if(confirm('Удалить эту мысль?')){
-        thoughts.splice(index,1);
-        localStorage.setItem('thoughts',JSON.stringify(thoughts));
-        updateThoughts();
-      }
-    });
-
-    thoughtsContainer.appendChild(div);
-  });
-  counter.textContent=`Мыслей всего: ${thoughts.length}`;
-  updateChart();
-}
-
-// сохранение мысли
+// Сохранение мысли
 document.getElementById('saveThought').addEventListener('click', ()=>{
-  const input=document.getElementById('thoughtInput');
+  const input = document.getElementById('thoughtInput');
   if(input.value.trim()===''||!currentType) return;
-  const thoughts=JSON.parse(localStorage.getItem('thoughts')||'[]');
-  const now=new Date();
+  const thoughts = JSON.parse(localStorage.getItem('thoughts') || '[]');
+  const now = new Date();
   thoughts.unshift({text:input.value.trim(), time:now.toLocaleString(), type:currentType});
-  localStorage.setItem('thoughts',JSON.stringify(thoughts));
+  localStorage.setItem('thoughts', JSON.stringify(thoughts));
   input.value='';
   currentType=null;
   updateThoughts();
 });
 
-// экспорт JSON
+// Экспорт JSON
 document.getElementById('exportJSON').addEventListener('click', ()=>{
   const thoughts=localStorage.getItem('thoughts')||'[]';
   const blob=new Blob([thoughts],{type:"application/json"});
@@ -196,7 +172,7 @@ document.getElementById('exportJSON').addEventListener('click', ()=>{
   URL.revokeObjectURL(url);
 });
 
-// импорт JSON
+// Импорт JSON
 document.getElementById('importBtn').addEventListener('click', ()=>{document.getElementById('importJSON').click();});
 document.getElementById('importJSON').addEventListener('change', (e)=>{
   const file=e.target.files[0];
@@ -205,7 +181,109 @@ document.getElementById('importJSON').addEventListener('change', (e)=>{
   reader.readAsText(file);
 });
 
+// График
+let chart;
+function updateChart() {
+  const thoughts = JSON.parse(localStorage.getItem('thoughts') || '[]');
+  const daily = {};
+  thoughts.forEach(t => {
+    const date = new Date(t.time).toLocaleDateString();
+    if(!daily[date]) daily[date] = {positive:0, negative:0};
+    daily[date][t.type]++;
+  });
+  const labels = Object.keys(daily).sort((a,b)=> new Date(a)-new Date(b));
+  const positiveData = labels.map(d => daily[d].positive);
+  const negativeData = labels.map(d => daily[d].negative);
+  const ctx = document.getElementById('energyChart').getContext('2d');
+  if(chart) chart.destroy();
+  chart = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels,
+      datasets: [
+        {label:'Даёт силы', data: positiveData, borderColor:'#4CAF50', backgroundColor:'rgba(76,175,80,0.2)', tension:0.3},
+        {label:'Забирает силы', data: negativeData, borderColor:'#f44336', backgroundColor:'rgba(244,67,54,0.2)', tension:0.3}
+      ]
+    },
+    options: {
+      responsive:true,
+      plugins: {legend:{labels:{color:'white'}}},
+      scales: {
+        x: {ticks:{color:'white'}},
+        y: {ticks:{color:'white'}}
+      }
+    }
+  });
+}
+
+// Обновление мыслей
+function updateThoughts() {
+  thoughtsContainer.innerHTML='';
+  const thoughts = JSON.parse(localStorage.getItem('thoughts') || '[]');
+  thoughts.forEach((t,index)=>{
+    const div=document.createElement('div');
+    div.className='thought';
+    div.style.background = t.type==='positive'?'#4CAF50':'#f44336';
+    div.innerHTML = `
+      <div>
+        <span class="icon">${t.type==='positive'?'✅':'⚡'}</span> ${t.text}
+        <div class="timestamp">${t.time}</div>
+      </div>
+      <div class="btns">
+        <button class="edit">✏️</button>
+        <button class="delete">🗑️</button>
+      </div>
+    `;
+    div.style.animation = 'appear 0.5s ease';
+
+    // Редактирование
+    div.querySelector('.edit').addEventListener('click', ()=>{
+      const newText = prompt('Измени мысль:', t.text);
+      if(newText){
+        const newType = prompt('Выбери тип энергии: positive/negative', t.type);
+        if(newType==='positive'||newType==='negative'){
+          const iconSpan = div.querySelector('.icon');
+          iconSpan.innerHTML = t.type==='positive'?'✅':'⚡';
+          const newIcon = document.createElement('span');
+          newIcon.className='icon';
+          newIcon.style.marginLeft='5px';
+          newIcon.textContent = newType==='positive'?'✅':'⚡';
+          iconSpan.parentNode.insertBefore(newIcon, iconSpan.nextSibling);
+          setTimeout(()=>{
+            iconSpan.textContent = newType==='positive'?'✅':'⚡';
+            newIcon.remove();
+          },800);
+
+          t.text = newText;
+          t.type = newType;
+          localStorage.setItem('thoughts', JSON.stringify(thoughts));
+          updateThoughts();
+        }
+      }
+    });
+
+    // Удаление
+    div.querySelector('.delete').addEventListener('click', ()=>{
+      if(confirm('Удалить эту мысль?')){
+        thoughts.splice(index,1);
+        localStorage.setItem('thoughts', JSON.stringify(thoughts));
+        updateThoughts();
+      }
+    });
+
+    thoughtsContainer.appendChild(div);
+  });
+
+  counter.textContent = `Мыслей всего: ${thoughts.length}`;
+
+  // Автоскролл с плавной прокруткой
+  thoughtsContainer.scrollTo({top: thoughtsContainer.scrollHeight, behavior: 'smooth'});
+
+  updateChart();
+}
+
 updateThoughts();
+
 </script>
 </body>
 </html>
