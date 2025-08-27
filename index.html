@@ -6,8 +6,8 @@
 <title>Мысли и Сила</title>
 <link rel="apple-touch-icon" sizes="180x180" href="icon.png">
 <link rel="icon" type="image/png" sizes="512x512" href="icon.png">
-  <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#1a237e">
+<link rel="manifest" href="manifest.json">
 <script>
 if ('serviceWorker' in navigator) {
   navigator.serviceWorker.register('./service-worker.js')
@@ -15,7 +15,6 @@ if ('serviceWorker' in navigator) {
     .catch(err => console.log('Ошибка Service Worker:', err));
 }
 </script>
-
 <style>
 body {
   font-family: sans-serif;
@@ -24,10 +23,9 @@ body {
   min-height: 100vh;
   display: flex;
   flex-direction: column;
-  overflow: hidden;
-  position: relative;
+  overflow: auto;
 }
-h1 { text-align: center; margin-bottom: 10px; }
+h1 { text-align: center; margin-bottom: 10px; color:white;}
 button {
   padding: 10px 20px;
   margin: 5px;
@@ -41,7 +39,7 @@ button {
 #positive { background: #4CAF50; color: white; }
 #negative { background: #f44336; color: white; }
 #thoughtInput { width: 100%; padding: 10px; margin: 10px 0; font-size: 16px; border-radius: 5px; }
-#thoughts { margin-top: 20px; flex-grow: 1; overflow-y: auto; z-index: 1; scroll-behavior: smooth; }
+#thoughts { margin-top: 20px; flex-grow: 1; overflow-y: auto; max-height: 60vh; }
 .thought {
   padding: 10px;
   margin-bottom: 5px;
@@ -105,16 +103,13 @@ button.pulse {
 
 <input type="text" id="thoughtInput" placeholder="Запиши мысль...">
 <button id="saveThought">Сохранить мысль</button>
-<button id="exportJSON">Экспорт JSON</button>
-<button id="importBtn">Импорт JSON</button>
-<input type="file" id="importJSON" style="display:none">
 
 <div id="counter"></div>
 <div id="thoughts"></div>
 
+<h2 style="color:white; text-align:center;">Дневник энергии</h2>
+<canvas id="energyChart" style="max-width:100%; height:200px;"></canvas>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-
-<canvas id="energyChart" style="max-width:100%; height:200px; margin-top:20px;"></canvas>
 
 <script>
 const body = document.body;
@@ -156,41 +151,7 @@ function activateEnergy(type){
 btnPositive.addEventListener('click',()=>activateEnergy('positive'));
 btnNegative.addEventListener('click',()=>activateEnergy('negative'));
 
-// Сохранение мысли
-document.getElementById('saveThought').addEventListener('click', ()=>{
-  const input = document.getElementById('thoughtInput');
-  if(input.value.trim()===''||!currentType) return;
-  const thoughts = JSON.parse(localStorage.getItem('thoughts') || '[]');
-  const now = new Date();
-  thoughts.unshift({text:input.value.trim(), time:now.toLocaleString(), type:currentType});
-  localStorage.setItem('thoughts', JSON.stringify(thoughts));
-  input.value='';
-  currentType=null;
-  updateThoughts();
-});
-
-// Экспорт JSON
-document.getElementById('exportJSON').addEventListener('click', ()=>{
-  const thoughts=localStorage.getItem('thoughts')||'[]';
-  const blob=new Blob([thoughts],{type:"application/json"});
-  const url=URL.createObjectURL(blob);
-  const a=document.createElement('a');
-  a.href=url;
-  a.download='thoughts.json';
-  a.click();
-  URL.revokeObjectURL(url);
-});
-
-// Импорт JSON
-document.getElementById('importBtn').addEventListener('click', ()=>{document.getElementById('importJSON').click();});
-document.getElementById('importJSON').addEventListener('change', (e)=>{
-  const file=e.target.files[0];
-  const reader=new FileReader();
-  reader.onload=function(){localStorage.setItem('thoughts',reader.result); updateThoughts();}
-  reader.readAsText(file);
-});
-
-// График
+// График энергии
 let chart;
 function updateChart() {
   const thoughts = JSON.parse(localStorage.getItem('thoughts') || '[]');
@@ -217,10 +178,7 @@ function updateChart() {
     options: {
       responsive:true,
       plugins: {legend:{labels:{color:'white'}}},
-      scales: {
-        x: {ticks:{color:'white'}},
-        y: {ticks:{color:'white'}}
-      }
+      scales: {x: {ticks:{color:'white'}}, y:{ticks:{color:'white'}}}
     }
   });
 }
@@ -245,14 +203,12 @@ function updateThoughts() {
     `;
     div.style.animation = 'appear 0.5s ease';
 
-    // Редактирование
     div.querySelector('.edit').addEventListener('click', ()=>{
       const newText = prompt('Измени мысль:', t.text);
       if(newText){
         const newType = prompt('Выбери тип энергии: positive/negative', t.type);
         if(newType==='positive'||newType==='negative'){
           const iconSpan = div.querySelector('.icon');
-          iconSpan.innerHTML = t.type==='positive'?'✅':'⚡';
           const newIcon = document.createElement('span');
           newIcon.className='icon';
           newIcon.style.marginLeft='5px';
@@ -262,7 +218,6 @@ function updateThoughts() {
             iconSpan.textContent = newType==='positive'?'✅':'⚡';
             newIcon.remove();
           },800);
-
           t.text = newText;
           t.type = newType;
           localStorage.setItem('thoughts', JSON.stringify(thoughts));
@@ -271,7 +226,6 @@ function updateThoughts() {
       }
     });
 
-    // Удаление
     div.querySelector('.delete').addEventListener('click', ()=>{
       if(confirm('Удалить эту мысль?')){
         thoughts.splice(index,1);
@@ -282,17 +236,25 @@ function updateThoughts() {
 
     thoughtsContainer.appendChild(div);
   });
-
   counter.textContent = `Мыслей всего: ${thoughts.length}`;
-
-  // Автоскролл с плавной прокруткой
-  thoughtsContainer.scrollTo({top: thoughtsContainer.scrollHeight, behavior: 'smooth'});
-
   updateChart();
 }
 
-updateThoughts();
+// Сохранение мысли
+document.getElementById('saveThought').addEventListener('click', ()=>{
+  const input = document.getElementById('thoughtInput');
+  if(input.value.trim()===''||!currentType) return;
+  const thoughts = JSON.parse(localStorage.getItem('thoughts') || '[]');
+  const now = new Date();
+  thoughts.unshift({text:input.value.trim(), time:now.toLocaleString(), type:currentType});
+  localStorage.setItem('thoughts', JSON.stringify(thoughts));
+  input.value='';
+  currentType=null;
+  updateThoughts();
+});
 
+updateThoughts();
 </script>
+
 </body>
 </html>
