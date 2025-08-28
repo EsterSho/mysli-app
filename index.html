@@ -1,260 +1,495 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Мысли и Сила</title>
-<link rel="apple-touch-icon" sizes="180x180" href="icon.png">
-<link rel="icon" type="image/png" sizes="512x512" href="icon.png">
-<meta name="theme-color" content="#1a237e">
-<link rel="manifest" href="manifest.json">
-<script>
-if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.register('./service-worker.js')
-    .then(() => console.log('Service Worker зарегистрирован'))
-    .catch(err => console.log('Ошибка Service Worker:', err));
-}
-</script>
-<style>
-body {
-  font-family: sans-serif;
-  padding: 20px;
-  transition: background 1s;
-  min-height: 100vh;
-  display: flex;
-  flex-direction: column;
-  overflow: auto;
-}
-h1 { text-align: center; margin-bottom: 10px; color:white;}
-button {
-  padding: 10px 20px;
-  margin: 5px;
-  border: none;
-  border-radius: 8px;
-  font-size: 16px;
-  cursor: pointer;
-  position: relative;
-  z-index: 2;
-}
-#positive { background: #4CAF50; color: white; }
-#negative { background: #f44336; color: white; }
-#thoughtInput { width: 100%; padding: 10px; margin: 10px 0; font-size: 16px; border-radius: 5px; }
-#thoughts { margin-top: 20px; flex-grow: 1; overflow-y: auto; max-height: 60vh; }
-.thought {
-  padding: 10px;
-  margin-bottom: 5px;
-  border-radius: 5px;
-  transition: transform 0.3s;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  position: relative;
-  color: white;
-  opacity: 1;
-}
-.timestamp { font-size: 12px; color: rgba(255,255,255,0.7); margin-top: 2px; }
-.icon { font-size: 20px; margin-left: 10px; position: relative; }
-.btns { display: flex; gap: 5px; margin-left: 10px; }
-.btns button { padding: 2px 6px; font-size: 14px; border-radius: 5px; color: white; }
-.edit { background: #2196F3; }
-.delete { background: #f44336; }
-#counter { margin-top: 10px; font-weight: bold; text-align: center; color: white; }
-/* Энергия анимация */
-.energy {
-  position: absolute;
-  top: -50px;
-  left: 50%;
-  width: 20px;
-  height: 20px;
-  border-radius: 50%;
-  opacity: 0.8;
-  pointer-events: none;
-  animation: flow 1.5s forwards;
-  z-index: 1;
-}
-@keyframes flow {
-  0% { transform: translate(-50%,0) scale(1); opacity: 0.8; }
-  100% { transform: translate(-50%,100vh) scale(0.5); opacity: 0; }
-}
-/* Появление мысли */
-@keyframes appear {
-  0% { transform: translateY(-50px) scale(0.5); opacity: 0; }
-  70% { transform: translateY(10px) scale(1.05); opacity: 1; }
-  100% { transform: translateY(0) scale(1); }
-}
-/* Пульс для кнопок */
-button.pulse {
-  animation: pulse 1s infinite alternate;
-}
-@keyframes pulse {
-  0% { transform: scale(1); box-shadow: 0 0 5px rgba(255,255,255,0.5); }
-  100% { transform: scale(1.05); box-shadow: 0 0 15px rgba(255,255,255,0.9); }
-}
-</style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Мысли и Сила</title>
+
+  <!-- Иконки и PWA -->
+  <link rel="apple-touch-icon" sizes="180x180" href="icon.png">
+  <link rel="icon" type="image/png" sizes="512x512" href="icon.png">
+  <meta name="theme-color" content="#1a237e">
+  <link rel="manifest" href="manifest.json">
+  <script>
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('./service-worker.js')
+        .then(()=>console.log('SW ok'))
+        .catch(e=>console.log('SW err', e));
+    }
+  </script>
+
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <style>
+    :root{
+      --bg-day1:#a0c4ff; --bg-day2:#b0bec5;
+      --bg-night1:#1a237e; --bg-night2:#283593;
+      --green:#4CAF50; --red:#f44336; --blue:#2196F3;
+      --card:#ffffff; --muted:#888;
+    }
+    *{box-sizing:border-box}
+    body{
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+      margin:0; padding:16px;
+      min-height:100vh; display:flex; flex-direction:column;
+      transition: background 1s; color:#fff; overflow:auto;
+    }
+    h1{margin:0 0 8px; text-align:center}
+    .row{display:flex; gap:8px; flex-wrap:wrap; align-items:center}
+    .card{
+      background:rgba(255,255,255,0.08);
+      backdrop-filter: blur(6px);
+      border:1px solid rgba(255,255,255,0.15);
+      border-radius:14px; padding:12px;
+    }
+    .controls .row > *{flex:1 1 auto}
+    input, select, button{
+      border:none; border-radius:10px; padding:10px 12px; font-size:15px;
+    }
+    input, select{background:#fff; color:#111}
+    button{color:#fff; cursor:pointer}
+    .btn-pos{background:var(--green)}
+    .btn-neg{background:var(--red)}
+    .btn-secondary{background:var(--blue)}
+    .btn-ghost{background:transparent; border:1px solid rgba(255,255,255,0.3)}
+    #thoughts{max-height:40vh; overflow:auto; padding-right:4px; scroll-behavior:smooth}
+    .thought{
+      background:rgba(255,255,255,0.1);
+      border:1px solid rgba(255,255,255,0.15);
+      border-radius:12px; padding:10px; margin-bottom:8px;
+      display:flex; justify-content:space-between; align-items:flex-start; gap:8px;
+      animation:appear .35s ease;
+    }
+    @keyframes appear{from{opacity:0; transform:translateY(-6px)} to{opacity:1; transform:translateY(0)}}
+    .left{display:flex; gap:8px; align-items:flex-start}
+    .badge{padding:2px 8px; border-radius:999px; font-size:12px; white-space:nowrap}
+    .badge-pos{background:rgba(76,175,80,.2); border:1px solid rgba(76,175,80,.5)}
+    .badge-neg{background:rgba(244,67,54,.2); border:1px solid rgba(244,67,54,.5)}
+    .meta{font-size:12px; color:rgba(255,255,255,0.7)}
+    .actions{display:flex; gap:6px}
+    .actions button{padding:6px 8px; font-size:13px; border-radius:8px}
+    .edit{background:var(--blue)}
+    .del{background:var(--red)}
+    .transform{background:linear-gradient(90deg, #ff9800, #4CAF50)}
+    .section-title{margin:12px 0 6px}
+    .kpi{display:flex; gap:8px; flex-wrap:wrap}
+    .kpi .pill{
+      background:rgba(255,255,255,.1); border:1px solid rgba(255,255,255,.15);
+      padding:8px 10px; border-radius:12px; font-size:14px
+    }
+    .progress-wrap{margin:8px 0}
+    .progress{
+      background:rgba(255,255,255,.2); border-radius:999px; overflow:hidden; height:10px
+    }
+    .progress > div{
+      height:100%; background:linear-gradient(90deg, #f44336, #4CAF50);
+      width:0%
+    }
+    .filters .row > *{flex:1 1 160px}
+    canvas{background:rgba(255,255,255,.08); border:1px solid rgba(255,255,255,.15);
+      border-radius:12px; padding:10px}
+    /* Heatmap */
+    .heatmap{display:grid; grid-template-columns: repeat(7, 1fr); gap:6px}
+    .cell{
+      aspect-ratio:1; border-radius:10px; display:flex; align-items:center; justify-content:center;
+      font-size:10px; color:#111; border:1px solid rgba(0,0,0,.05)
+    }
+    .legend{display:flex; gap:8px; align-items:center; font-size:12px; color:#eee}
+    .legend .box{width:16px; height:16px; border-radius:4px; border:1px solid rgba(255,255,255,.25)}
+    .muted{color:rgba(255,255,255,.75)}
+    /* small */
+    @media (max-width: 420px){
+      .actions{flex-wrap:wrap}
+    }
+  </style>
 </head>
 <body>
+  <h1>Мысли и Сила</h1>
 
-<h1>Мысли и Сила</h1>
+  <!-- Ввод -->
+  <div class="card controls">
+    <div class="row">
+      <input id="thoughtInput" type="text" placeholder="Запиши мысль..." />
+      <select id="category">
+        <option value="деньги">💰 Деньги</option>
+        <option value="отношения">❤️ Отношения</option>
+        <option value="здоровье">💪 Здоровье</option>
+        <option value="саморазвитие">🧠 Саморазвитие</option>
+        <option value="семья">👨‍👩‍👧 Семья</option>
+        <option value="работа">📊 Работа</option>
+        <option value="другое" selected>✨ Другое</option>
+      </select>
+    </div>
+    <div class="row">
+      <button class="btn-pos" id="btnPos">Даёт силу ✅</button>
+      <button class="btn-neg" id="btnNeg">Забирает силу ⚡</button>
+      <button class="btn-secondary" id="exportBtn">Экспорт JSON</button>
+      <input type="file" id="importFile" style="display:none" accept="application/json"/>
+      <button class="btn-ghost" id="importBtn">Импорт JSON</button>
+    </div>
+    <div class="progress-wrap">
+      <div class="muted" id="energyLabel">Энергия за 7 дней: 0%</div>
+      <div class="progress"><div id="energyBar"></div></div>
+    </div>
+  </div>
 
-<div style="text-align:center;">
-  <button id="positive">Даёт силы</button>
-  <button id="negative">Забирает силы</button>
-</div>
+  <!-- KPIs -->
+  <div class="kpi" id="kpiRow"></div>
 
-<input type="text" id="thoughtInput" placeholder="Запиши мысль...">
-<button id="saveThought">Сохранить мысль</button>
+  <!-- Список мыслей -->
+  <h3 class="section-title">Дневник</h3>
+  <div id="thoughts" class="card"></div>
 
-<div id="counter"></div>
-<div id="thoughts"></div>
+  <!-- Фильтры графика -->
+  <h3 class="section-title">График</h3>
+  <div class="card filters">
+    <div class="row">
+      <select id="period">
+        <option value="7">Неделя (7)</option>
+        <option value="30">Месяц (30)</option>
+      </select>
+      <select id="filterCategory">
+        <option value="all">Все категории</option>
+        <option value="деньги">Деньги</option>
+        <option value="отношения">Отношения</option>
+        <option value="здоровье">Здоровье</option>
+        <option value="саморазвитие">Саморазвитие</option>
+        <option value="семья">Семья</option>
+        <option value="работа">Работа</option>
+        <option value="другое">Другое</option>
+      </select>
+      <label><input type="checkbox" id="showPos" checked> Показать «даёт»</label>
+      <label><input type="checkbox" id="showNeg" checked> Показать «забирает»</label>
+    </div>
+  </div>
 
-<h2 style="color:white; text-align:center;">Дневник энергии</h2>
-<canvas id="energyChart" style="max-width:100%; height:200px;"></canvas>
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <canvas id="chart" height="160"></canvas>
 
-<script>
-const body = document.body;
-const thoughtsContainer = document.getElementById('thoughts');
-const counter = document.getElementById('counter');
-const btnPositive = document.getElementById('positive');
-const btnNegative = document.getElementById('negative');
-let currentType = null;
+  <!-- Тепловая карта -->
+  <h3 class="section-title">Тепловая карта (30 дней)</h3>
+  <div class="card">
+    <div class="heatmap" id="heatmap"></div>
+    <div class="legend" style="margin-top:8px;">
+      <span>Баланс</span>
+      <span class="box" style="background:#f7b2b2"></span><span>больше «забирает»</span>
+      <span class="box" style="background:#f0f0f0"></span><span>нейтрально</span>
+      <span class="box" style="background:#b6e3b6"></span><span>больше «даёт»</span>
+    </div>
+  </div>
 
-// Фон по времени суток
-function setBackgroundByTime() {
-  const hour = new Date().getHours();
-  if(hour >= 6 && hour < 18) body.style.background = 'linear-gradient(to bottom, #a0c4ff, #b0bec5)';
-  else body.style.background = 'linear-gradient(to bottom, #1a237e, #283593)';
-}
-setBackgroundByTime();
+  <!-- Аналитика -->
+  <h3 class="section-title">Аналитика периода</h3>
+  <div id="insights" class="card muted">Нет данных.</div>
 
-// Энергия частицы
-function createEnergy(type){
-  const energy = document.createElement('div');
-  energy.className='energy';
-  energy.style.background = type==='positive'?'#4CAF50':'#f44336';
-  energy.style.left = (Math.random()*80+10)+'%';
-  body.appendChild(energy);
-  setTimeout(()=>energy.remove(),1500);
-}
-
-// Кнопки энергии
-function activateEnergy(type){
-  currentType = type;
-  createEnergy(type);
-  body.style.background = type==='positive'?'#d0f0c0':'#f0d0d0';
-  alert(type==='positive'?'Энергия и сила активированы!':'Мы наблюдаем и отпускаем эту энергию.');
-  setTimeout(setBackgroundByTime,5000);
-  btnPositive.classList.add('pulse');
-  btnNegative.classList.add('pulse');
-  setTimeout(()=>{btnPositive.classList.remove('pulse'); btnNegative.classList.remove('pulse');},1500);
-}
-btnPositive.addEventListener('click',()=>activateEnergy('positive'));
-btnNegative.addEventListener('click',()=>activateEnergy('negative'));
-
-// График энергии
-let chart;
-function updateChart() {
-  const thoughts = JSON.parse(localStorage.getItem('thoughts') || '[]');
-  const daily = {};
-  thoughts.forEach(t => {
-    const date = new Date(t.time).toLocaleDateString();
-    if(!daily[date]) daily[date] = {positive:0, negative:0};
-    daily[date][t.type]++;
-  });
-  const labels = Object.keys(daily).sort((a,b)=> new Date(a)-new Date(b));
-  const positiveData = labels.map(d => daily[d].positive);
-  const negativeData = labels.map(d => daily[d].negative);
-  const ctx = document.getElementById('energyChart').getContext('2d');
-  if(chart) chart.destroy();
-  chart = new Chart(ctx, {
-    type: 'line',
-    data: {
-      labels,
-      datasets: [
-        {label:'Даёт силы', data: positiveData, borderColor:'#4CAF50', backgroundColor:'rgba(76,175,80,0.2)', tension:0.3},
-        {label:'Забирает силы', data: negativeData, borderColor:'#f44336', backgroundColor:'rgba(244,67,54,0.2)', tension:0.3}
-      ]
-    },
-    options: {
-      responsive:true,
-      plugins: {legend:{labels:{color:'white'}}},
-      scales: {x: {ticks:{color:'white'}}, y:{ticks:{color:'white'}}}
+  <script>
+    // ===== ВРЕМЕННОЙ ФОН =====
+    function setBackgroundByTime(){
+      const h = new Date().getHours();
+      document.body.style.background =
+        (h>=6 && h<18)
+        ? 'linear-gradient(to bottom, var(--bg-day1), var(--bg-day2))'
+        : 'linear-gradient(to bottom, var(--bg-night1), var(--bg-night2))';
     }
-  });
-}
+    setBackgroundByTime();
 
-// Обновление мыслей
-function updateThoughts() {
-  thoughtsContainer.innerHTML='';
-  const thoughts = JSON.parse(localStorage.getItem('thoughts') || '[]');
-  thoughts.forEach((t,index)=>{
-    const div=document.createElement('div');
-    div.className='thought';
-    div.style.background = t.type==='positive'?'#4CAF50':'#f44336';
-    div.innerHTML = `
-      <div>
-        <span class="icon">${t.type==='positive'?'✅':'⚡'}</span> ${t.text}
-        <div class="timestamp">${t.time}</div>
-      </div>
-      <div class="btns">
-        <button class="edit">✏️</button>
-        <button class="delete">🗑️</button>
-      </div>
-    `;
-    div.style.animation = 'appear 0.5s ease';
+    // ====== ДАННЫЕ ======
+    const storeKey='thoughts';
+    let thoughts = JSON.parse(localStorage.getItem(storeKey) || '[]');
 
-    div.querySelector('.edit').addEventListener('click', ()=>{
+    // ====== UI ======
+    const $ = s=>document.querySelector(s);
+    const $$ = s=>document.querySelectorAll(s);
+    const input = $('#thoughtInput');
+    const categorySel = $('#category');
+    const thoughtsBox = $('#thoughts');
+    const periodSel = $('#period');
+    const filterCatSel = $('#filterCategory');
+    const showPos = $('#showPos');
+    const showNeg = $('#showNeg');
+    const energyBar = $('#energyBar');
+    const energyLabel = $('#energyLabel');
+    const kpiRow = $('#kpiRow');
+    const heatmapBox = $('#heatmap');
+    const insightsBox = $('#insights');
+
+    $('#btnPos').onclick = ()=>saveThought('positive');
+    $('#btnNeg').onclick = ()=>saveThought('negative');
+
+    $('#exportBtn').onclick = ()=>{
+      const blob = new Blob([JSON.stringify(thoughts,null,2)], {type:'application/json'});
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = 'thoughts.json';
+      a.click(); URL.revokeObjectURL(a.href);
+    };
+    $('#importBtn').onclick = ()=>$('#importFile').click();
+    $('#importFile').addEventListener('change', e=>{
+      const f=e.target.files[0]; if(!f) return;
+      const r=new FileReader();
+      r.onload=()=>{ try{
+          const data = JSON.parse(r.result);
+          if(Array.isArray(data)){ thoughts = data; persist(); fullRender(); }
+        }catch(err){ alert('Не удалось импортировать JSON'); }
+      };
+      r.readAsText(f);
+    });
+
+    [periodSel, filterCatSel, showPos, showNeg].forEach(el=> el.addEventListener('change', ()=>{ drawChart(); renderInsights(); }));
+
+    // ====== СОХРАНЕНИЕ МЫСЛИ ======
+    function saveThought(type){
+      const text = (input.value||'').trim();
+      if(!text){ input.focus(); return; }
+      const cat = categorySel.value;
+      const now = new Date();
+      thoughts.unshift({ text, type, category: cat, date: now.toISOString() });
+      persist();
+      input.value='';
+      renderList();
+      drawChart();
+      renderHeatmap();
+      renderKPIs();
+      renderEnergy();
+      renderInsights();
+      // автоскролл к началу списка
+      thoughtsBox.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+    function persist(){ localStorage.setItem(storeKey, JSON.stringify(thoughts)); }
+
+    // ====== РЕНДЕР СПИСКА ======
+    function renderList(){
+      thoughtsBox.innerHTML='';
+      thoughts.forEach((t,idx)=>{
+        const div=document.createElement('div'); div.className='thought';
+        const icon = t.type==='positive'?'✅':'⚡';
+        const badgeClass = t.type==='positive'?'badge-pos':'badge-neg';
+        div.innerHTML = `
+          <div class="left">
+            <div class="badge ${badgeClass}">${icon}</div>
+            <div>
+              <div>${escapeHtml(t.text)}</div>
+              <div class="meta">${new Date(t.date).toLocaleString()} • ${t.category}</div>
+            </div>
+          </div>
+          <div class="actions">
+            <button class="edit">✏️</button>
+            <button class="transform">⚡→✅</button>
+            <button class="del">🗑️</button>
+          </div>`;
+        div.querySelector('.edit').onclick = ()=>editThought(idx);
+        div.querySelector('.del').onclick = ()=>deleteThought(idx);
+        div.querySelector('.transform').onclick = ()=>transformThought(idx);
+        thoughtsBox.appendChild(div);
+      });
+    }
+    function editThought(i){
+      const t = thoughts[i];
       const newText = prompt('Измени мысль:', t.text);
-      if(newText){
-        const newType = prompt('Выбери тип энергии: positive/negative', t.type);
-        if(newType==='positive'||newType==='negative'){
-          const iconSpan = div.querySelector('.icon');
-          const newIcon = document.createElement('span');
-          newIcon.className='icon';
-          newIcon.style.marginLeft='5px';
-          newIcon.textContent = newType==='positive'?'✅':'⚡';
-          iconSpan.parentNode.insertBefore(newIcon, iconSpan.nextSibling);
-          setTimeout(()=>{
-            iconSpan.textContent = newType==='positive'?'✅':'⚡';
-            newIcon.remove();
-          },800);
-          t.text = newText;
-          t.type = newType;
-          localStorage.setItem('thoughts', JSON.stringify(thoughts));
-          updateThoughts();
+      if(!newText) return;
+      let newType = prompt('Тип энергии: positive/negative', t.type);
+      if(newType!=='positive' && newType!=='negative') newType = t.type;
+      thoughts[i] = {...t, text:newText, type:newType};
+      persist(); fullRender();
+    }
+    function deleteThought(i){
+      if(!confirm('Удалить мысль?')) return;
+      thoughts.splice(i,1); persist(); fullRender();
+    }
+    function transformThought(i){
+      const t = thoughts[i];
+      if(t.type==='positive'){ alert('Она уже ✅'); return; }
+      // мини-анимация: просто смена типа
+      thoughts[i] = {...t, type:'positive'};
+      persist(); fullRender();
+    }
+
+    // ====== ГРАФИК ======
+    let chart;
+    function groupByDays(days, catFilter='all'){
+      const map = {};
+      const today = new Date();
+      for(let i=days-1;i>=0;i--){
+        const d=new Date(); d.setDate(today.getDate()-i);
+        const key = d.toISOString().slice(0,10);
+        map[key]={pos:0, neg:0};
+      }
+      thoughts.forEach(t=>{
+        if(catFilter!=='all' && t.category!==catFilter) return;
+        const key = (t.date||'').slice(0,10);
+        if(map[key]){
+          if(t.type==='positive') map[key].pos++;
+          else map[key].neg++;
         }
+      });
+      const labels = Object.keys(map).sort();
+      return {
+        labels,
+        positives: labels.map(k=>map[k].pos),
+        negatives: labels.map(k=>map[k].neg)
+      };
+    }
+    function drawChart(){
+      const days = parseInt(periodSel.value,10);
+      const cat = filterCatSel.value;
+      const data = groupByDays(days, cat);
+
+      const datasets=[];
+      if(showPos.checked) datasets.push({label:'Даёт силу', data:data.positives, borderColor:'#4CAF50', backgroundColor:'rgba(76,175,80,0.2)', tension:.3, fill:false});
+      if(showNeg.checked) datasets.push({label:'Забирает силу', data:data.negatives, borderColor:'#f44336', backgroundColor:'rgba(244,67,54,0.2)', tension:.3, fill:false});
+
+      // средние линии
+      const avg = arr => (arr.length? arr.reduce((a,b)=>a+b,0)/arr.length : 0);
+      if(showPos.checked){
+        const ap = avg(data.positives);
+        datasets.push({label:'Среднее (даёт)', data: Array(data.labels.length).fill(ap), borderColor:'rgba(76,175,80,.6)', borderDash:[6,6], tension:0, fill:false});
       }
-    });
-
-    div.querySelector('.delete').addEventListener('click', ()=>{
-      if(confirm('Удалить эту мысль?')){
-        thoughts.splice(index,1);
-        localStorage.setItem('thoughts', JSON.stringify(thoughts));
-        updateThoughts();
+      if(showNeg.checked){
+        const an = avg(data.negatives);
+        datasets.push({label:'Среднее (забирает)', data: Array(data.labels.length).fill(an), borderColor:'rgba(244,67,54,.6)', borderDash:[6,6], tension:0, fill:false});
       }
-    });
 
-    thoughtsContainer.appendChild(div);
-  });
-  counter.textContent = `Мыслей всего: ${thoughts.length}`;
-  updateChart();
-}
+      if(chart) chart.destroy();
+      const ctx = document.getElementById('chart').getContext('2d');
+      chart = new Chart(ctx,{
+        type:'line',
+        data:{ labels: data.labels.map(s=>s.slice(5)), datasets },
+        options:{
+          responsive:true,
+          plugins:{ legend:{ labels:{ color:'#fff' } } },
+          scales:{
+            x:{ ticks:{ color:'#fff' }, grid:{ color:'rgba(255,255,255,.15)' } },
+            y:{ beginAtZero:true, ticks:{ color:'#fff' }, grid:{ color:'rgba(255,255,255,.15)' } }
+          }
+        }
+      });
+    }
 
-// Сохранение мысли
-document.getElementById('saveThought').addEventListener('click', ()=>{
-  const input = document.getElementById('thoughtInput');
-  if(input.value.trim()===''||!currentType) return;
-  const thoughts = JSON.parse(localStorage.getItem('thoughts') || '[]');
-  const now = new Date();
-  thoughts.unshift({text:input.value.trim(), time:now.toLocaleString(), type:currentType});
-  localStorage.setItem('thoughts', JSON.stringify(thoughts));
-  input.value='';
-  currentType=null;
-  updateThoughts();
-});
+    // ====== ТЕПЛОВАЯ КАРТА (30 дней) ======
+    function renderHeatmap(){
+      const days=30;
+      const data = groupByDays(days, 'all');
+      // баланс = pos - neg
+      const balanceByDate = {};
+      data.labels.forEach((d,i)=> balanceByDate[d] = (data.positives[i] - data.negatives[i]));
+      heatmapBox.innerHTML='';
+      // 7 колонок (недели вертикально не соблюдаем, просто сетка из 7)
+      Object.keys(balanceByDate).forEach(date=>{
+        const bal = balanceByDate[date];
+        const color = balanceColor(bal);
+        const cell = document.createElement('div');
+        cell.className='cell';
+        cell.style.background = color;
+        cell.title = `${date}: баланс ${bal >=0 ? '+'+bal : bal}`;
+        cell.textContent = new Date(date).getDate();
+        heatmapBox.appendChild(cell);
+      });
+    }
+    function balanceColor(b){
+      // от -3..0..+3 в пастельные
+      const clamp = (x,min,max)=> Math.max(min, Math.min(max,x));
+      const v = clamp(b, -3, 3);
+      if(v<0){
+        const t = Math.abs(v)/3; // 0..1
+        // красноватый -> серый
+        return mix('#f7b2b2','#f0f0f0', 1-t);
+      }else if(v>0){
+        const t = v/3;
+        // зелёный -> серый (обратная интерполяция)
+        return mix('#b6e3b6','#f0f0f0', 1-t);
+      }
+      return '#f0f0f0';
+    }
+    function mix(c1,c2,t){
+      const a = hexToRgb(c1), b = hexToRgb(c2);
+      const m = { r:Math.round(a.r*(1-t)+b.r*t), g:Math.round(a.g*(1-t)+b.g*t), b:Math.round(a.b*(1-t)+b.b*t) };
+      return `rgb(${m.r},${m.g},${m.b})`;
+    }
+    function hexToRgb(h){
+      const x = h.replace('#','');
+      const n = x.length===3
+        ? x.split('').map(s=>parseInt(s+s,16))
+        : [x.slice(0,2),x.slice(2,4),x.slice(4,6)].map(s=>parseInt(s,16));
+      return {r:n[0], g:n[1], b:n[2]};
+    }
 
-updateThoughts();
-</script>
+    // ====== KPI / ЭНЕРГИЯ / ИНСАЙТЫ ======
+    function renderKPIs(){
+      const total = thoughts.length;
+      const pos = thoughts.filter(t=>t.type==='positive').length;
+      const neg = thoughts.filter(t=>t.type==='negative').length;
+      const last7 = groupByDays(7,'all');
+      const last7count = last7.positives.reduce((a,b)=>a+b,0)+last7.negatives.reduce((a,b)=>a+b,0);
 
+      kpiRow.innerHTML = `
+        <div class="pill">Всего мыслей: <b>${total}</b></div>
+        <div class="pill">Даёт силы: <b>${pos}</b></div>
+        <div class="pill">Забирает силы: <b>${neg}</b></div>
+        <div class="pill">За 7 дней: <b>${last7count}</b></div>
+      `;
+    }
+    function renderEnergy(){
+      const g = groupByDays(7,'all');
+      const pos = g.positives.reduce((a,b)=>a+b,0);
+      const neg = g.negatives.reduce((a,b)=>a+b,0);
+      const total = pos+neg;
+      const pct = total ? Math.round((pos/total)*100) : 0;
+      energyBar.style.width = pct+'%';
+      energyLabel.textContent = `Энергия за 7 дней: ${pct}% (✅ ${pos} / ⚡ ${neg})`;
+    }
+    function renderInsights(){
+      const days = parseInt(periodSel.value,10);
+      const cat = filterCatSel.value;
+      const g = groupByDays(days, cat);
+      const pos = g.positives.reduce((a,b)=>a+b,0);
+      const neg = g.negatives.reduce((a,b)=>a+b,0);
+      const total = pos+neg;
+      if(!total){ insightsBox.textContent='Нет данных за выбранный период.'; return; }
+      const pct = Math.round(pos/total*100);
+
+      // топ-категории за период
+      const byCat = {};
+      thoughts.forEach(t=>{
+        const d = t.date.slice(0,10);
+        if(!g.labels.includes(d)) return;
+        byCat[t.category] = byCat[t.category] || {pos:0,neg:0};
+        if(t.type==='positive') byCat[t.category].pos++;
+        else byCat[t.category].neg++;
+      });
+      const top = Object.entries(byCat).sort((a,b)=> (b[1].pos+b[1].neg) - (a[1].pos+a[1].neg)).slice(0,3);
+
+      // сильные/слабые дни недели
+      const weekday = (d)=> ['Вс','Пн','Вт','Ср','Чт','Пт','Сб'][new Date(d).getDay()];
+      const byDay = {};
+      g.labels.forEach((d,i)=>{
+        const key = weekday(d);
+        byDay[key] = byDay[key] || {pos:0,neg:0};
+        byDay[key].pos += g.positives[i];
+        byDay[key].neg += g.negatives[i];
+      });
+      const dayScore = Object.entries(byDay).map(([k,v])=>[k, (v.pos - v.neg)]);
+      dayScore.sort((a,b)=>b[1]-a[1]);
+      const best = dayScore[0]?.[0] || '—';
+      const worst = dayScore[dayScore.length-1]?.[0] || '—';
+
+      insightsBox.innerHTML = `
+        <div>За период: <b>${total}</b> мыслей — ✅ <b>${pos}</b>, ⚡ <b>${neg}</b> • Позитива: <b>${pct}%</b></div>
+        <div style="margin-top:6px;">Топ категории:</div>
+        <ul style="margin:6px 0 0 18px;">
+          ${top.map(([c,v])=>`<li>${c}: ${v.pos+v.neg} (✅ ${v.pos} / ⚡ ${v.neg})</li>`).join('') || '<li>Нет</li>'}
+        </ul>
+        <div style="margin-top:6px;">Сильный день: <b>${best}</b> • Слабый день: <b>${worst}</b></div>
+      `;
+    }
+
+    // ====== УТИЛИТЫ ======
+    function escapeHtml(s){ return s.replace(/[&<>"']/g, m=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;', "'":'&#39;' }[m])); }
+
+    // ====== ПЕРВИЧНЫЙ РЕНДЕР ======
+    function fullRender(){
+      renderList(); drawChart(); renderHeatmap(); renderKPIs(); renderEnergy(); renderInsights();
+    }
+    fullRender();
+  </script>
 </body>
 </html>
